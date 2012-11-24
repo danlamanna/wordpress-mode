@@ -27,6 +27,18 @@
 (require 'ido)
 (require 'json)
 
+(eval-after-load "sql"
+  '(add-to-list 'sql-product-alist
+		'(mysql-noprompt
+		  :name "MySQL"
+		  :font-lock sql-mode-mysql-font-lock-keywords
+		  :sqli-login nil
+		  :sqli-program sql-mysql-program
+		  :sqli-options sql-mysql-options
+		  :sqli-comint-func sql-comint-mysql
+		  :sqli-prompt-regexp "^mysql> "
+		  :sqli-prompt-length 6)))
+
 (define-minor-mode wordpress-mode
   "Toggle WordPress mode."
   nil
@@ -102,6 +114,24 @@
     (let ((uid (or user-id 1))
 	  (new-pass (read-passwd "New Password: ")))
       (wp/shell-command (format "@wp_set_password('%s', %d);" new-pass uid)))))
+
+(defun wp/sql()
+  "Runs MySQL as an inferior process, using the credentials
+   defined as constants in `wp/config-file' in a buffer.
+
+   Uses `mysql-noprompt' which is defined above as a sql product."
+  (interactive)
+  (when (wp/exists)
+    (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
+								 'db-user' => DB_USER,
+								 'db-password' => DB_PASSWORD,
+								 'db-host' => DB_HOST));"))
+	   (creds        (json-read-from-string json-creds))
+	   (sql-user     (cdr (assoc 'db-user creds)))
+	   (sql-password (cdr (assoc 'db-password creds)))
+	   (sql-database (cdr (assoc 'db-name creds)))
+	   (sql-server   (cdr (assoc 'db-host creds))))
+      (sql-product-interactive 'mysql-noprompt))))
 
 (defun wp/duplicate-theme()
   "Prompts the user to select a theme from `wp/available-themes' using ido,
