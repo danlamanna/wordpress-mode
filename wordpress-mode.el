@@ -45,7 +45,7 @@
   "Given the current buffer contains a file, this returns
    the absolute path for the WordPress installation, or `nil'."
   (when (buffer-file-name)
-    (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file)))
+    (expand-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file))))
 
 (defun wp/shell-command(command)
   "Runs COMMAND using php -r after requiring wp-blog-header.php, COMMAND
