@@ -9,13 +9,16 @@ Installation
 **Note: wordpress-mode uses ido for all of it's jump functions, ido is required in emacs 22 and above.**    
      
 1) `git clone https://github.com/asdasDan/wordpress-mode.git`    
-2) Add to load path, using something like this (differs on path):    
+2)  Add to load path, using something like this (differs on path):  
+  
     (add-to-list 'load-path (expand-file-name "~/.emacs.d/wordpress-mode"))
-    (require 'wordpress-mode)
+    (require 'wordpress-mode)   
+
 3) Ensure `wordpress-mode` is called in the right place, I use `php-mode-hook`
-      (add-hook 'php-mode-hook '(lambda()
-                                  (if (wp/exists)
-                                      (wordpress-mode))))
+
+    (add-hook 'php-mode-hook '(lambda()
+                                (if (wp/exists)
+                                    (wordpress-mode))))
      
 Usage     
 ----
