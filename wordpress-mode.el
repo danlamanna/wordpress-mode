@@ -27,6 +27,9 @@
 (require 'ido)
 (require 'json)
 
+(defcustom wp/php-executable "/usr/bin/php"
+  "Path to PHP for calling WordPress functions.")
+
 (eval-after-load "sql"
   '(add-to-list 'sql-product-alist
 		'(mysql-noprompt
@@ -60,10 +63,10 @@
     (expand-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file))))
 
 (defun wp/shell-command(command)
-  "Runs COMMAND using php -r after requiring wp-blog-header.php, COMMAND
+  "Runs COMMAND using `wp/php-executable' -r after requiring wp-blog-header.php, COMMAND
    is run through `shell-command-to-string'."
   (when (wp/exists)
-    (let* ((beg (format "php -r \"require('%s');" (concat (wp/exists) "wp-blog-header.php")))
+    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "wp-blog-header.php")))
 	   (full-command (concat beg command "\"")))
       (shell-command-to-string full-command))))
 
