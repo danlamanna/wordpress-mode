@@ -18,12 +18,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; Untested in multiple environments. Radically relies on calling php via the command
-;; line. Requires jump library for quicker navigation.
+;; Requires calling commands via `wp/php-executable'.
+;; Untested in many environments.
 
 ;;; Code:
 
-(require 'jump)
 (require 'ido)
 (require 'json)
 
@@ -50,6 +49,7 @@
     (,(kbd "C-c w c") . wp/find-config)
     (,(kbd "C-c w p") . wp/jump-to-plugin)
     (,(kbd "C-c w r") . wp/change-password)
+    (,(kbd "C-c w s") . wp/sql)
     (,(kbd "C-c w m") . wp/jump-to-mu-plugin)
     (,(kbd "C-c w d") . wp/duplicate-theme))
   :group 'wordpress)
@@ -70,6 +70,12 @@
 	   (full-command (concat beg command "\"")))
       (shell-command-to-string full-command))))
 
+(defun wp/jump-in-dir(dir)
+  (if (or (equal ido-mode 'file) (equal ido-mode 'both))
+      (ido-find-file-in-dir dir)
+    (let ((default-directory dir))
+      (call-interactively 'find-file))))
+
 (defun wp/find-config()
   "Calls `find-file' on the existing `wp/config-file'."
   (interactive)
@@ -77,24 +83,24 @@
     (find-file (concat (wp/exists) wp/config-file))))
 
 (defun wp/jump-to-template()
-  "Calls `jump-find-file-in-dir' on the active template path."
+  "Calls `wp/jump-in-dir' on the active template path."
   (interactive)
   (when (wp/exists)
-    (jump-find-file-in-dir (wp/shell-command "echo TEMPLATEPATH;"))))
+    (wp/jump-in-dir (wp/shell-command "echo TEMPLATEPATH;"))))
 
 (defun wp/jump-to-plugin()
-  "Calls `jump-find-file-in-dir' on the plugins directory."
+  "Calls `wp/jump-in-dir' on the plugins directory."
   (interactive)
   (when (wp/exists)
-    (jump-find-file-in-dir (concat (wp/exists) "wp-content/plugins"))))
+    (wp/jump-in-dir (concat (wp/exists) "wp-content/plugins"))))
 
 (defun wp/jump-to-mu-plugin()
-  "Calls `jump-find-file-in-dir' on the mu-plugins directory, if it exists."
+  "Calls `wp/jump-in-dir' on the mu-plugins directory, if it exists."
   (interactive)
   (when (wp/exists)
     (let ((mu-plugin-dir (concat (wp/exists) "wp-content/mu-plugins")))
       (if (file-directory-p mu-plugin-dir)
-	  (jump-find-file-in-dir mu-plugin-dir)))))
+	  (wp/jump-in-dir mu-plugin-dir)))))
 
 (defun wp/available-themes()
   "Returns list of strings with themes found with no errors."
