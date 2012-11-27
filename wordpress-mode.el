@@ -21,6 +21,11 @@
 ;; Requires calling commands via `wp/php-executable'.
 ;; Untested in many environments.
 
+;;; Todo
+;; Implement some form of ctags, to allow inline documentation of any WP function,
+;;  in case the user isn't using wpsh.
+;; Some form of wrapper to wpsh.
+
 ;;; Code:
 
 (require 'ido)
