@@ -148,6 +148,16 @@
 	   (sql-server   (cdr (assoc 'db-host creds))))
       (sql-product-interactive 'mysql-noprompt))))
 
+(defun wp/shell()
+  (interactive)
+  (when (and (wp/exists)
+	     (not (eq (shell-command-to-string "which phpsh") "")))
+    (let* ((main-include (concat (wp/exists) "wp-blog-header.php"))
+	   (explicit-shell-file-name "phpsh")
+	   (default-directory (wp/exists))
+	   (explicit-phpsh-args `(,main-include)))
+    (call-interactively 'shell))))
+
 (defun wp/duplicate-theme()
   "Prompts the user to select a theme from `wp/available-themes' using ido,
    then prompts for a new directory name for the theme to be duplicated into.
