@@ -34,17 +34,19 @@
 (defcustom wp/php-executable "/usr/bin/php"
   "Path to PHP for calling WordPress functions.")
 
+(defconst wp/config-file "wp-config.php")
+
 (eval-after-load "sql"
   '(add-to-list 'sql-product-alist
-		'(mysql-noprompt
-		  :name "MySQL"
-		  :font-lock sql-mode-mysql-font-lock-keywords
-		  :sqli-login nil
-		  :sqli-program sql-mysql-program
-		  :sqli-options sql-mysql-options
-		  :sqli-comint-func sql-comint-mysql
-		  :sqli-prompt-regexp "^mysql> "
-		  :sqli-prompt-length 6)))
+                '(mysql-noprompt
+                  :name "WP/MySQL"
+                  :font-lock sql-mode-mysql-font-lock-keywords
+                  :sqli-login nil
+                  :sqli-program sql-mysql-program
+                  :sqli-options sql-mysql-options
+                  :sqli-comint-func sql-comint-mysql
+                  :sqli-prompt-regexp "^mysql> "
+                  :sqli-prompt-length 6)))
 
 (define-minor-mode wordpress-mode
   "Toggle WordPress mode."
