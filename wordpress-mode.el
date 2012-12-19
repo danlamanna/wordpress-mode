@@ -61,21 +61,31 @@
     (,(kbd "C-c w d") . wp/duplicate-theme))
   :group 'wordpress)
 
-(defconst wp/config-file "wp-config.php")
+(defun wp/--tramp-safe-file-name(filename)
+  "Takes FILENAME, and checks if it matches `tramp-file-name-structure',
+   if it does, it returns the local filename (in relation to the connected
+   machine).
+
+   If it doesn't appear to be a tramp filename, FILENAME is returned
+   unchanged."
+  (if (and filename
+           (boundp 'tramp-file-name-structure)
+           (string-match (nth 0 tramp-file-name-structure) filename))
+      (tramp-file-name-localname (tramp-dissect-file-name filename))
+    filename))
 
 (defun wp/exists()
   "Given the current buffer contains a file, this returns
    the absolute path for the WordPress installation, or `nil'."
   (when (buffer-file-name)
-    (if (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file)
-	(expand-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file)))))
+    (wp/--tramp-safe-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file))))
 
 (defun wp/shell-command(command)
   "Runs COMMAND using `wp/php-executable' -r after requiring wp-blog-header.php, COMMAND
    is run through `shell-command-to-string'."
   (when (wp/exists)
-    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "wp-blog-header.php")))
-	   (full-command (concat beg command "\"")))
+    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "/wp-blog-header.php")))
+           (full-command (concat beg command "\"")))
       (shell-command-to-string full-command))))
 
 (defun wp/jump-in-dir(dir)
