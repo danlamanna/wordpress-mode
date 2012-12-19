@@ -118,13 +118,13 @@
   (when (wp/exists)
     (let ((mu-plugin-dir (concat (wp/exists) "wp-content/mu-plugins")))
       (if (file-directory-p mu-plugin-dir)
-	  (wp/jump-in-dir mu-plugin-dir)))))
+          (wp/jump-in-dir mu-plugin-dir)))))
 
 (defun wp/available-themes()
   "Returns list of strings with themes found with no errors."
   (when (wp/exists)
     (let* ((themes-json (wp/shell-command "exit(json_encode(wp_get_themes(array('errors' => false))));"))
-	   (themes-list (json-read-from-string themes-json)))
+           (themes-list (json-read-from-string themes-json)))
       (mapcar 'symbol-name (mapcar 'car themes-list)))))
 
 (defun wp/change-password(&optional user-id)
@@ -139,7 +139,7 @@
   (interactive)
   (when (wp/exists)
     (let ((uid (or user-id 1))
-	  (new-pass (read-passwd "New Password: ")))
+          (new-pass (read-passwd "New Password: ")))
       (wp/shell-command (format "@wp_set_password('%s', %d);" new-pass uid)))))
 
 (defun wp/sql()
@@ -150,24 +150,24 @@
   (interactive)
   (when (wp/exists)
     (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
-								 'db-user' => DB_USER,
-								 'db-password' => DB_PASSWORD,
-								 'db-host' => DB_HOST));"))
-	   (creds        (json-read-from-string json-creds))
-	   (sql-user     (cdr (assoc 'db-user creds)))
-	   (sql-password (cdr (assoc 'db-password creds)))
-	   (sql-database (cdr (assoc 'db-name creds)))
-	   (sql-server   (cdr (assoc 'db-host creds))))
-      (sql-product-interactive 'mysql-noprompt))))
+                                                                 'db-user' => DB_USER,
+                                                                 'db-password' => DB_PASSWORD,
+                                                                 'db-host' => DB_HOST));"))
+           (creds        (json-read-from-string json-creds))
+           (sql-user     (cdr (assoc 'db-user creds)))
+           (sql-password (cdr (assoc 'db-password creds)))
+           (sql-database (cdr (assoc 'db-name creds)))
+           (sql-server   (cdr (assoc 'db-host creds))))
+        (sql-product-interactive 'mysql-noprompt))))
 
 (defun wp/shell()
   (interactive)
   (when (and (wp/exists)
-	     (not (eq (shell-command-to-string "which phpsh") "")))
+             (not (eq (shell-command-to-string "which phpsh") "")))
     (let* ((main-include (concat (wp/exists) "wp-blog-header.php"))
-	   (explicit-shell-file-name "phpsh")
-	   (default-directory (wp/exists))
-	   (explicit-phpsh-args `(,main-include)))
+           (explicit-shell-file-name "phpsh")
+           (default-directory (wp/exists))
+           (explicit-phpsh-args `(,main-include)))
     (call-interactively 'shell))))
 
 (defun wp/duplicate-theme()
@@ -182,11 +182,11 @@
   (when (wp/exists)
     (let ((themes (wp/available-themes)))
       (when (listp themes)
-	(let* ((base-theme-dir (concat (wp/exists) "wp-content/themes/"))
-	       (orig-theme-dir (concat base-theme-dir (ido-completing-read "Theme to Duplicate: " themes)))
-	       (new-theme-dir  (concat base-theme-dir (read-from-minibuffer "Directory Name: "))))
-	  (unless (file-directory-p new-theme-dir)
-	    (copy-directory orig-theme-dir new-theme-dir nil nil t)))))))
+        (let* ((base-theme-dir (concat (wp/exists) "wp-content/themes/"))
+               (orig-theme-dir (concat base-theme-dir (ido-completing-read "Theme to Duplicate: " themes)))
+               (new-theme-dir  (concat base-theme-dir (read-from-minibuffer "Directory Name: "))))
+          (unless (file-directory-p new-theme-dir)
+            (copy-directory orig-theme-dir new-theme-dir nil nil t)))))))
 
 (provide 'wordpress-mode)
 
