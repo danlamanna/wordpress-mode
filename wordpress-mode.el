@@ -34,17 +34,19 @@
 (defcustom wp/php-executable "/usr/bin/php"
   "Path to PHP for calling WordPress functions.")
 
+(defconst wp/config-file "wp-config.php")
+
 (eval-after-load "sql"
   '(add-to-list 'sql-product-alist
-		'(mysql-noprompt
-		  :name "MySQL"
-		  :font-lock sql-mode-mysql-font-lock-keywords
-		  :sqli-login nil
-		  :sqli-program sql-mysql-program
-		  :sqli-options sql-mysql-options
-		  :sqli-comint-func sql-comint-mysql
-		  :sqli-prompt-regexp "^mysql> "
-		  :sqli-prompt-length 6)))
+                '(mysql-noprompt
+                  :name "WP/MySQL"
+                  :font-lock sql-mode-mysql-font-lock-keywords
+                  :sqli-login nil
+                  :sqli-program sql-mysql-program
+                  :sqli-options sql-mysql-options
+                  :sqli-comint-func sql-comint-mysql
+                  :sqli-prompt-regexp "^mysql> "
+                  :sqli-prompt-length 6)))
 
 (define-minor-mode wordpress-mode
   "Toggle WordPress mode."
@@ -59,21 +61,31 @@
     (,(kbd "C-c w d") . wp/duplicate-theme))
   :group 'wordpress)
 
-(defconst wp/config-file "wp-config.php")
+(defun wp/--tramp-safe-file-name(filename)
+  "Takes FILENAME, and checks if it matches `tramp-file-name-structure',
+   if it does, it returns the local filename (in relation to the connected
+   machine).
+
+   If it doesn't appear to be a tramp filename, FILENAME is returned
+   unchanged."
+  (if (and filename
+           (boundp 'tramp-file-name-structure)
+           (string-match (nth 0 tramp-file-name-structure) filename))
+      (tramp-file-name-localname (tramp-dissect-file-name filename))
+    filename))
 
 (defun wp/exists()
   "Given the current buffer contains a file, this returns
    the absolute path for the WordPress installation, or `nil'."
   (when (buffer-file-name)
-    (if (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file)
-	(expand-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file)))))
+    (wp/--tramp-safe-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file))))
 
 (defun wp/shell-command(command)
   "Runs COMMAND using `wp/php-executable' -r after requiring wp-blog-header.php, COMMAND
    is run through `shell-command-to-string'."
   (when (wp/exists)
-    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "wp-blog-header.php")))
-	   (full-command (concat beg command "\"")))
+    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "/wp-blog-header.php")))
+           (full-command (concat beg command "\"")))
       (shell-command-to-string full-command))))
 
 (defun wp/jump-in-dir(dir)
@@ -106,13 +118,13 @@
   (when (wp/exists)
     (let ((mu-plugin-dir (concat (wp/exists) "wp-content/mu-plugins")))
       (if (file-directory-p mu-plugin-dir)
-	  (wp/jump-in-dir mu-plugin-dir)))))
+          (wp/jump-in-dir mu-plugin-dir)))))
 
 (defun wp/available-themes()
   "Returns list of strings with themes found with no errors."
   (when (wp/exists)
     (let* ((themes-json (wp/shell-command "exit(json_encode(wp_get_themes(array('errors' => false))));"))
-	   (themes-list (json-read-from-string themes-json)))
+           (themes-list (json-read-from-string themes-json)))
       (mapcar 'symbol-name (mapcar 'car themes-list)))))
 
 (defun wp/change-password(&optional user-id)
@@ -127,7 +139,7 @@
   (interactive)
   (when (wp/exists)
     (let ((uid (or user-id 1))
-	  (new-pass (read-passwd "New Password: ")))
+          (new-pass (read-passwd "New Password: ")))
       (wp/shell-command (format "@wp_set_password('%s', %d);" new-pass uid)))))
 
 (defun wp/sql()
@@ -138,24 +150,24 @@
   (interactive)
   (when (wp/exists)
     (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
-								 'db-user' => DB_USER,
-								 'db-password' => DB_PASSWORD,
-								 'db-host' => DB_HOST));"))
-	   (creds        (json-read-from-string json-creds))
-	   (sql-user     (cdr (assoc 'db-user creds)))
-	   (sql-password (cdr (assoc 'db-password creds)))
-	   (sql-database (cdr (assoc 'db-name creds)))
-	   (sql-server   (cdr (assoc 'db-host creds))))
-      (sql-product-interactive 'mysql-noprompt))))
+                                                                 'db-user' => DB_USER,
+                                                                 'db-password' => DB_PASSWORD,
+                                                                 'db-host' => DB_HOST));"))
+           (creds        (json-read-from-string json-creds))
+           (sql-user     (cdr (assoc 'db-user creds)))
+           (sql-password (cdr (assoc 'db-password creds)))
+           (sql-database (cdr (assoc 'db-name creds)))
+           (sql-server   (cdr (assoc 'db-host creds))))
+        (sql-product-interactive 'mysql-noprompt))))
 
 (defun wp/shell()
   (interactive)
   (when (and (wp/exists)
-	     (not (eq (shell-command-to-string "which phpsh") "")))
+             (not (eq (shell-command-to-string "which phpsh") "")))
     (let* ((main-include (concat (wp/exists) "wp-blog-header.php"))
-	   (explicit-shell-file-name "phpsh")
-	   (default-directory (wp/exists))
-	   (explicit-phpsh-args `(,main-include)))
+           (explicit-shell-file-name "phpsh")
+           (default-directory (wp/exists))
+           (explicit-phpsh-args `(,main-include)))
     (call-interactively 'shell))))
 
 (defun wp/duplicate-theme()
@@ -170,11 +182,11 @@
   (when (wp/exists)
     (let ((themes (wp/available-themes)))
       (when (listp themes)
-	(let* ((base-theme-dir (concat (wp/exists) "wp-content/themes/"))
-	       (orig-theme-dir (concat base-theme-dir (ido-completing-read "Theme to Duplicate: " themes)))
-	       (new-theme-dir  (concat base-theme-dir (read-from-minibuffer "Directory Name: "))))
-	  (unless (file-directory-p new-theme-dir)
-	    (copy-directory orig-theme-dir new-theme-dir nil nil t)))))))
+        (let* ((base-theme-dir (concat (wp/exists) "wp-content/themes/"))
+               (orig-theme-dir (concat base-theme-dir (ido-completing-read "Theme to Duplicate: " themes)))
+               (new-theme-dir  (concat base-theme-dir (read-from-minibuffer "Directory Name: "))))
+          (unless (file-directory-p new-theme-dir)
+            (copy-directory orig-theme-dir new-theme-dir nil nil t)))))))
 
 (provide 'wordpress-mode)
 
