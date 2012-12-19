@@ -32,3 +32,10 @@ Usage
 `C-c w d` prompts you to select a theme that exists in WordPress to **duplicate**.    
 `C-c w r` prompts you for a new password for the user with an ID of 1.    
 `C-c w s` opens an inferior MySQL process in a buffer logged in with the credentials defined in wp-config.php   
+    
+Tramp Compatibility    
+----     
+- WordPress mode will run PHP commands across the remote host
+if editing a file via Tramp.    
+- WP/MySQL will work, but requires mysql-client be installed on the 
+client machine.    
