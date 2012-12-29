@@ -61,31 +61,47 @@
     (,(kbd "C-c w d") . wp/duplicate-theme))
   :group 'wordpress)
 
-(defun wp/--tramp-safe-file-name(filename)
-  "Takes FILENAME, and checks if it matches `tramp-file-name-structure',
-   if it does, it returns the local filename (in relation to the connected
-   machine).
+;; Tramp helpers, these are "safe", meaning
+;; the add/remove prefix functions only change
+;; their arguments if they don't have/have the prefix.
+(defun wp/--is-tramp-filename(&optional filename)
+  "Returns `t' or `nil' based on whether or not FILENAME
+   is a file using tramp. FILENAME defaults to `buffer-file-name'."
+  (let ((filename (or filename (buffer-file-name))))
+    (and (boundp 'tramp-file-name-structure)
+         (string-match (nth 0 tramp-file-name-structure) filename))))
 
-   If it doesn't appear to be a tramp filename, FILENAME is returned
-   unchanged."
-  (if (and filename
-           (boundp 'tramp-file-name-structure)
-           (string-match (nth 0 tramp-file-name-structure) filename))
-      (tramp-file-name-localname (tramp-dissect-file-name filename))
-    filename))
+(defun wp/--tramp-prefix()
+  (when (buffer-file-name)
+    (file-remote-p (buffer-file-name))))
+
+(defun wp/--add-tramp-prefix(&optional filename)
+  (let ((filename (or filename (buffer-file-name))))
+    (if (wp/--is-tramp-filename filename)
+        filename
+      (concat (file-remote-p filename) filename))))
+
+(defun wp/--remove-tramp-prefix(&optional filename)
+  (let ((filename (or filename (buffer-file-name))))
+    (if (wp/--is-tramp-filename filename)
+        (tramp-file-name-localname (tramp-dissect-file-name filename))
+      filename)))
 
 (defun wp/exists()
   "Given the current buffer contains a file, this returns
    the absolute path for the WordPress installation, or `nil'."
   (when (buffer-file-name)
-    (wp/--tramp-safe-file-name (locate-dominating-file (file-name-directory (buffer-file-name)) wp/config-file))))
+    (let* ((curr-dir (file-name-directory (buffer-file-name)))
+           (abspath  (locate-dominating-file curr-dir wp/config-file)))
+      (expand-file-name abspath))))
 
 (defun wp/shell-command(command)
   "Runs COMMAND using `wp/php-executable' -r after requiring wp-blog-header.php, COMMAND
    is run through `shell-command-to-string'."
   (when (wp/exists)
-    (let* ((beg (format "%s -r \"require('%s');" wp/php-executable (concat (wp/exists) "/wp-blog-header.php")))
-           (full-command (concat beg command "\"")))
+    (let* ((bootstrap-file (concat (wp/--remove-tramp-prefix (wp/exists)) "/wp-blog-header.php"))
+           (begin (format "%s -r \"require_once('%s');" wp/php-executable bootstrap-file))
+           (full-command (concat begin command "\"")))
       (shell-command-to-string full-command))))
 
 (defun wp/jump-in-dir(dir)
@@ -104,7 +120,7 @@
   "Calls `wp/jump-in-dir' on the active template path."
   (interactive)
   (when (wp/exists)
-    (wp/jump-in-dir (wp/shell-command "echo TEMPLATEPATH;"))))
+    (wp/jump-in-dir (concat (wp/--tramp-prefix) (wp/shell-command "echo TEMPLATEPATH;")))))
 
 (defun wp/jump-to-plugin()
   "Calls `wp/jump-in-dir' on the plugins directory."
@@ -146,7 +162,10 @@
   "Runs MySQL as an inferior process, using the credentials
    defined as constants in `wp/config-file' in a buffer.
 
-   Uses `mysql-noprompt' which is defined above as a sql product."
+   Uses `mysql-noprompt' which is defined above as a sql product.
+
+   TODO: Consider using regex to parse `wp/config-file' for these
+   credentials rather than doing another shell command."
   (interactive)
   (when (wp/exists)
     (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
@@ -162,13 +181,15 @@
 
 (defun wp/shell()
   (interactive)
-  (when (and (wp/exists)
-             (not (eq (shell-command-to-string "which phpsh") "")))
-    (let* ((main-include (concat (wp/exists) "wp-blog-header.php"))
+  (when (wp/exists)
+    (let* ((phpsh (shell-command-to-string "which phpsh"))
+           (bootstrap (concat (wp/--remove-tramp-prefix (wp/exists)) "/wp-blog-header.php"))
            (explicit-shell-file-name "phpsh")
            (default-directory (wp/exists))
-           (explicit-phpsh-args `(,main-include)))
-    (call-interactively 'shell))))
+           (explicit-phpsh-args `(,bootstrap)))
+      (if (string-equal phpsh "")
+          (message "'which phpsh' evaluted to nothing, can't run WP shell.")
+        (call-interactively 'shell)))))
 
 (defun wp/duplicate-theme()
   "Prompts the user to select a theme from `wp/available-themes' using ido,
