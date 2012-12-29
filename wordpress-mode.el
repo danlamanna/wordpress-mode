@@ -104,7 +104,7 @@
   "Calls `wp/jump-in-dir' on the active template path."
   (interactive)
   (when (wp/exists)
-    (wp/jump-in-dir (wp/shell-command "echo TEMPLATEPATH;"))))
+    (wp/jump-in-dir (concat (wp/--tramp-prefix) (wp/shell-command "echo TEMPLATEPATH;")))))
 
 (defun wp/jump-to-plugin()
   "Calls `wp/jump-in-dir' on the plugins directory."
@@ -146,7 +146,10 @@
   "Runs MySQL as an inferior process, using the credentials
    defined as constants in `wp/config-file' in a buffer.
 
-   Uses `mysql-noprompt' which is defined above as a sql product."
+   Uses `mysql-noprompt' which is defined above as a sql product.
+
+   TODO: Consider using regex to parse `wp/config-file' for these
+   credentials rather than doing another shell command."
   (interactive)
   (when (wp/exists)
     (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
@@ -162,13 +165,15 @@
 
 (defun wp/shell()
   (interactive)
-  (when (and (wp/exists)
-             (not (eq (shell-command-to-string "which phpsh") "")))
-    (let* ((main-include (concat (wp/exists) "wp-blog-header.php"))
+  (when (wp/exists)
+    (let* ((phpsh (shell-command-to-string "which phpsh"))
+           (bootstrap (concat (wp/--remove-tramp-prefix (wp/exists)) "/wp-blog-header.php"))
            (explicit-shell-file-name "phpsh")
            (default-directory (wp/exists))
-           (explicit-phpsh-args `(,main-include)))
-    (call-interactively 'shell))))
+           (explicit-phpsh-args `(,bootstrap)))
+      (if (string-equal phpsh "")
+          (message "'which phpsh' evaluted to nothing, can't run WP shell.")
+        (call-interactively 'shell)))))
 
 (defun wp/duplicate-theme()
   "Prompts the user to select a theme from `wp/available-themes' using ido,
