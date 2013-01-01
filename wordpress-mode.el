@@ -34,6 +34,9 @@
 (defcustom wp/php-executable "/usr/bin/php"
   "Path to PHP for calling WordPress functions.")
 
+(defcustom wp/tags-file "wp_tags"
+  "File to store etags in.")
+
 (defconst wp/config-file "wp-config.php")
 
 (eval-after-load "sql"
@@ -87,12 +90,28 @@
         (tramp-file-name-localname (tramp-dissect-file-name filename))
       filename)))
 
+(defun wp/--generate-tags()
+  (if (string-equal (shell-command-to-string "which etags") "")
+      (message "Failed to generate tags, 'which etags' returned nothing.")
+    (let* ((wp-dir (wp/exists))
+           (files-command (format "find %s -type f -name \"*.php\"" wp-dir))
+           (etags-command (format "xargs etags -o %s" wp/tags-file)))
+      (message "done"))))
+;(shell-command (format "%s | %s" files-command etags-command)))))
+
+(defun wp/goto-function()
+  (interactive)
+  (when (file-exists-p wp/tags-file)
+    (find-tag (car (find-tag-interactive "Goto Function: ")))))
+
 (defun wp/exists()
   "Given the current buffer contains a file, this returns
    the absolute path for the WordPress installation, or `nil'."
   (when (buffer-file-name)
     (let* ((curr-dir (file-name-directory (buffer-file-name)))
            (abspath  (locate-dominating-file curr-dir wp/config-file)))
+      (if (not (file-exists-p wp/tags-file))
+          (wp/--generate-tags))
       (expand-file-name abspath))))
 
 (defun wp/shell-command(command)
