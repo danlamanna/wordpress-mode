@@ -56,6 +56,7 @@
   nil
   " WordPress"
   `((,(kbd "C-c w t") . wp/jump-to-template)
+    (,(kbd "C-c w f") . wp/goto-function)
     (,(kbd "C-c w c") . wp/find-config)
     (,(kbd "C-c w p") . wp/jump-to-plugin)
     (,(kbd "C-c w r") . wp/change-password)
@@ -101,7 +102,7 @@
 
 (defun wp/goto-function()
   (interactive)
-  (when (file-exists-p wp/tags-file)
+  (when (file-exists-p (concat (wp/exists) wp/tags-file))
     (find-tag (car (find-tag-interactive "Goto Function: ")))))
 
 (defun wp/exists()
