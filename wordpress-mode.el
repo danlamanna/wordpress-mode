@@ -38,7 +38,7 @@
 
 (eval-after-load "sql"
   '(add-to-list 'sql-product-alist
-                '(mysql-noprompt
+                '(mysql-wp-noprompt
                   :name "WP/MySQL"
                   :font-lock sql-mode-mysql-font-lock-keywords
                   :sqli-login nil
@@ -162,22 +162,15 @@
   "Runs MySQL as an inferior process, using the credentials
    defined as constants in `wp/config-file' in a buffer.
 
-   Uses `mysql-noprompt' which is defined above as a sql product.
-
-   TODO: Consider using regex to parse `wp/config-file' for these
-   credentials rather than doing another shell command."
+   Uses `mysql-wp-noprompt' which is defined above as a sql product."
   (interactive)
   (when (wp/exists)
-    (let* ((json-creds (wp/shell-command "echo json_encode(array('db-name' => DB_NAME,
-                                                                 'db-user' => DB_USER,
-                                                                 'db-password' => DB_PASSWORD,
-                                                                 'db-host' => DB_HOST));"))
-           (creds        (json-read-from-string json-creds))
-           (sql-user     (cdr (assoc 'db-user creds)))
-           (sql-password (cdr (assoc 'db-password creds)))
-           (sql-database (cdr (assoc 'db-name creds)))
-           (sql-server   (cdr (assoc 'db-host creds))))
-        (sql-product-interactive 'mysql-noprompt))))
+    (let* ((db-creds (wp/db-credentials))
+           (sql-user (cdr (assoc "DB_USER" db-creds)))
+           (sql-password (cdr (assoc "DB_PASSWORD" db-creds)))
+           (sql-database (cdr (assoc "DB_NAME" db-creds)))
+           (sql-server (cdr (assoc "DB_HOST" db-creds))))
+      (sql-product-interactive 'mysql-wp-noprompt))))
 
 (defun wp/shell()
   (interactive)
@@ -208,6 +201,18 @@
                (new-theme-dir  (concat base-theme-dir (read-from-minibuffer "Directory Name: "))))
           (unless (file-directory-p new-theme-dir)
             (copy-directory orig-theme-dir new-theme-dir nil nil t)))))))
+
+(defun wp/db-credentials()
+  "Fetches database credentials from `wp/config-file' by way of regular
+   expression matching. Not the most accurate, but easier than running
+   another PHP command and bootstrapping WP."
+  (let ((db-credentials ()))
+    (with-temp-buffer
+      (insert-file-contents (concat (wp/exists) wp/config-file))
+      (goto-char (point-min))
+      (while (search-forward-regexp "define\s*(\s*['\"]\\(DB_\\(HOST\\|NAME\\|PASSWORD\\|USER\\)\\)['\"]\s*,\s*['\"]\\([^'\"]*\\)['\"]\s*)" nil t)
+        (add-to-list 'db-credentials `(,(match-string 1) . ,(match-string 3)))))
+    db-credentials))
 
 (provide 'wordpress-mode)
 
