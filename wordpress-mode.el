@@ -88,12 +88,10 @@
       filename)))
 
 (defun wp/exists()
-  "Given the current buffer contains a file, this returns
-   the absolute path for the WordPress installation, or `nil'."
-  (when (buffer-file-name)
-    (let* ((curr-dir (file-name-directory (buffer-file-name)))
-           (abspath  (locate-dominating-file curr-dir wp/config-file)))
-      (expand-file-name abspath))))
+  "Returns the absolute path for the WordPress installation, or `nil'."
+  (let ((wp-dir (locate-dominating-file default-directory wp/config-file)))
+    (if wp-dir
+        (expand-file-name wp-dir))))
 
 (defun wp/shell-command(command)
   "Runs COMMAND using `wp/php-executable' -r after requiring wp-blog-header.php, COMMAND
