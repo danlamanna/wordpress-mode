@@ -212,6 +212,23 @@
         (add-to-list 'db-credentials `(,(match-string 1) . ,(match-string 3)))))
     db-credentials))
 
+(defun wp/describe-function(function)
+  (interactive "sFunction: ")
+  (with-help-window (help-buffer)
+    (let* ((found-func-buffer (find-tag-noselect function))
+           (found-func-fname  (buffer-file-name found-func-buffer))
+           (found-func-usage  (wp/--get-line-in-buffer found-func-buffer)))
+      (princ (format "%s is a function in `%s`.\n\n" function (file-name-nondirectory found-func-fname)))
+      (princ (format "%s\n\n" (replace-in-string found-func-usage "function" "")))
+      (princ (format "documentation..\n\n")))))
+
+(defun wp/--get-line-in-buffer(buffer)
+  (with-current-buffer buffer
+    (beginning-of-line)
+    (call-interactively 'set-mark-command)
+    (end-of-line)
+    (buffer-substring-no-properties (mark) (point))))
+
 (provide 'wordpress-mode)
 
 ;;; wordpress-mode.el ends here
