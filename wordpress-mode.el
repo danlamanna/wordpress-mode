@@ -219,7 +219,7 @@
            (found-func-fname  (buffer-file-name found-func-buffer))
            (found-func-usage  (wp/--get-function-usage-in-line (wp/--get-line-in-buffer found-func-buffer))))
       (princ (format "%s is a function in `%s`.\n\n" function (file-name-nondirectory found-func-fname)))
-      (princ (format "%s\n\n" (replace-in-string found-func-usage "function" "")))
+      (princ (format "%s\n\n" found-func-usage))
       (princ (format "documentation..\n\n")))))
 
 (defun wp/--get-function-usage-in-line(line)
