@@ -34,6 +34,13 @@
 (defcustom wp/php-executable "/usr/bin/php"
   "Path to PHP for calling WordPress functions.")
 
+(defcustom wp/php-docblock-regexp "/\\*\\(.\\|\n\\)+?\\*/"
+  "Regex to match Docblocks in PHP.")
+
+(defcustom wp/php-docblock-cruft-regexp
+  "\\(^/\\*+\\|^\s\\*+\s+\\|^\s\\*+\\|^\s\\*+/\\|/$\\)"
+  "Regex to match cruft in PHP docblocks we don't care for.")
+
 (defconst wp/config-file "wp-config.php")
 
 (eval-after-load "sql"
@@ -219,8 +226,14 @@
            (found-func-fname  (buffer-file-name found-func-buffer))
            (found-func-usage  (wp/--get-function-usage-in-line (wp/--get-line-in-buffer found-func-buffer))))
       (princ (format "%s is a function in `%s`.\n\n" function (file-name-nondirectory found-func-fname)))
-      (princ (format "%s\n\n" found-func-usage))
-      (princ (format "documentation..\n\n")))))
+      (princ (format "%s\n" found-func-usage))
+      (princ (format "%s\n" (wp/--get-docblock found-func-buffer))))))
+
+(defun wp/--get-docblock(buffer)
+  (save-excursion
+    (with-current-buffer buffer
+      (when (re-search-backward wp/php-docblock-regexp nil t)
+        (replace-regexp-in-string wp/php-docblock-cruft-regexp "" (match-string 0))))))
 
 (defun wp/--get-function-usage-in-line(line)
   (let* ((usage-match (string-match "[a-zA-Z\_]+(.*+)" line))
